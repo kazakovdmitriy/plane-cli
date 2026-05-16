@@ -5,7 +5,7 @@
 ## Установка
 
 ```bash
-go install github.com/makeplane/plane-cli/cmd/plane@latest
+go install github.com/kazakovdmitriy/plane-cli/cmd/plane@latest
 ```
 
 Или скачай готовый бинарник из [GitHub Releases](https://github.com/kazakovdmitriy/plane-cli/releases).
