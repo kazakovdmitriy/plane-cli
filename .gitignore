@@ -1,4 +1,5 @@
 bin/
+plane
 *.exe
 *.exe~
 *.dll
