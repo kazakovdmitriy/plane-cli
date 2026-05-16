@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/makeplane/plane-cli/internal/models"
+	"github.com/kazakovdmitriy/plane-cli/internal/models"
 )
 
 func captureStdout(f func()) string {

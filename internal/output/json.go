@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/makeplane/plane-cli/internal/models"
+	"github.com/kazakovdmitriy/plane-cli/internal/models"
 )
 
 func WriteItems(items []interface{}) {
