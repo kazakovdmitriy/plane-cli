@@ -84,6 +84,141 @@ func TestResolveTokenMissing(t *testing.T) {
 	}
 }
 
+func TestReadAgentTokens(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".plane-tokens")
+
+	if err := os.WriteFile(path, []byte("pm=token-pm\ntl=token-tl\n# comment\ndev=token-dev\n\nqa=token-qa\n"), 0600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	tokens, err := ReadAgentTokens(path)
+	if err != nil {
+		t.Fatalf("ReadAgentTokens: %v", err)
+	}
+	if tokens["pm"] != "token-pm" {
+		t.Errorf("Expected token-pm, got %s", tokens["pm"])
+	}
+	if tokens["tl"] != "token-tl" {
+		t.Errorf("Expected token-tl, got %s", tokens["tl"])
+	}
+	if tokens["qa"] != "token-qa" {
+		t.Errorf("Expected token-qa, got %s", tokens["qa"])
+	}
+	if _, ok := tokens["cr"]; ok {
+		t.Errorf("Expected no cr token")
+	}
+}
+
+func TestReadAgentTokensMissing(t *testing.T) {
+	_, err := ReadAgentTokens("/nonexistent/path/.plane-tokens")
+	if err == nil {
+		t.Errorf("Expected error for missing file")
+	}
+}
+
+func TestReadAgentTokensEmpty(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".plane-tokens")
+
+	if err := os.WriteFile(path, []byte("# only comment\n\n"), 0600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	_, err := ReadAgentTokens(path)
+	if err == nil {
+		t.Errorf("Expected error for empty tokens file")
+	}
+}
+
+func TestResolveTokenWithAgent(t *testing.T) {
+	home := t.TempDir()
+	os.Setenv("HOME", home)
+	defer os.Unsetenv("HOME")
+
+	dir := t.TempDir()
+	tokensPath := filepath.Join(dir, ".plane-tokens")
+	if err := os.WriteFile(tokensPath, []byte("pm=token-pm\ndev=token-dev\n"), 0600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	os.Setenv("PLANE_AGENT", "pm")
+	defer os.Unsetenv("PLANE_AGENT")
+
+	token, err := resolveToken("", "", tokensPath)
+	if err != nil || token != "token-pm" {
+		t.Errorf("Expected token-pm, got %s err=%v", token, err)
+	}
+}
+
+func TestResolveTokenAgentRoleNotFound(t *testing.T) {
+	home := t.TempDir()
+	os.Setenv("HOME", home)
+	defer os.Unsetenv("HOME")
+
+	dir := t.TempDir()
+	tokensPath := filepath.Join(dir, ".plane-tokens")
+	if err := os.WriteFile(tokensPath, []byte("pm=token-pm\n"), 0600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	os.Setenv("PLANE_AGENT", "qa")
+	defer os.Unsetenv("PLANE_AGENT")
+
+	Save(&Context{Token: "config-token"})
+	token, err := resolveToken("", "", tokensPath)
+	if err != nil || token != "config-token" {
+		t.Errorf("Expected fallback to config-token, got %s err=%v", token, err)
+	}
+}
+
+func TestResolveTokenAgentFileMissing(t *testing.T) {
+	home := t.TempDir()
+	os.Setenv("HOME", home)
+	defer os.Unsetenv("HOME")
+
+	os.Setenv("PLANE_AGENT", "pm")
+	defer os.Unsetenv("PLANE_AGENT")
+
+	Save(&Context{Token: "config-token"})
+	token, err := resolveToken("", "", "/nonexistent/path/.plane-tokens")
+	if err != nil || token != "config-token" {
+		t.Errorf("Expected fallback to config-token, got %s err=%v", token, err)
+	}
+}
+
+func TestResolveTokenAgentPriority(t *testing.T) {
+	home := t.TempDir()
+	os.Setenv("HOME", home)
+	defer os.Unsetenv("HOME")
+
+	dir := t.TempDir()
+	tokensPath := filepath.Join(dir, ".plane-tokens")
+	if err := os.WriteFile(tokensPath, []byte("pm=token-pm\n"), 0600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	os.Setenv("PLANE_AGENT", "pm")
+	defer os.Unsetenv("PLANE_AGENT")
+
+	Save(&Context{Token: "config-token"})
+
+	token, _ := resolveToken("flag-token", "", tokensPath)
+	if token != "flag-token" {
+		t.Errorf("Expected flag-token, got %s", token)
+	}
+
+	token, _ = resolveToken("", "env-token", tokensPath)
+	if token != "env-token" {
+		t.Errorf("Expected env-token, got %s", token)
+	}
+
+	token, _ = resolveToken("", "", tokensPath)
+	if token != "token-pm" {
+		t.Errorf("Expected token-pm, got %s", token)
+	}
+}
+
 func TestConfigPath(t *testing.T) {
 	home := t.TempDir()
 	os.Setenv("HOME", home)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Context struct {
@@ -15,6 +16,8 @@ type Context struct {
 }
 
 const DefaultAPIURL = "https://api.plane.so"
+
+const AgentTokensFile = "/workspace/config/.plane-tokens"
 
 func configPath() (string, error) {
 	home, err := os.UserHomeDir()
@@ -75,21 +78,62 @@ func Delete() error {
 	return nil
 }
 
+func ReadAgentTokens(path string) (map[string]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	tokens := make(map[string]string)
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		role := strings.TrimSpace(parts[0])
+		token := strings.TrimSpace(parts[1])
+		if role != "" && token != "" {
+			tokens[role] = token
+		}
+	}
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("no valid tokens in %s", path)
+	}
+	return tokens, nil
+}
+
 func ResolveToken(flagToken, envToken string) (string, error) {
+	return resolveToken(flagToken, envToken, AgentTokensFile)
+}
+
+func resolveToken(flagToken, envToken, agentTokensFile string) (string, error) {
 	if flagToken != "" {
 		return flagToken, nil
 	}
 	if envToken != "" {
 		return envToken, nil
 	}
+
+	agent := os.Getenv("PLANE_AGENT")
+	if agent != "" {
+		if tokens, err := ReadAgentTokens(agentTokensFile); err == nil {
+			if tok, ok := tokens[agent]; ok {
+				return tok, nil
+			}
+		}
+	}
+
 	ctx, err := Load()
 	if err != nil {
-		return "", fmt.Errorf("no token: use --token, PLANE_TOKEN, or plane context set")
+		return "", fmt.Errorf("no token: use --token, PLANE_TOKEN, PLANE_AGENT, or plane context set")
 	}
 	if ctx.Token != "" {
 		return ctx.Token, nil
 	}
-	return "", fmt.Errorf("no token: use --token, PLANE_TOKEN, or plane context set")
+	return "", fmt.Errorf("no token: use --token, PLANE_TOKEN, PLANE_AGENT, or plane context set")
 }
 
 func ResolveWorkspace(flagWS, envWS string) (string, error) {
