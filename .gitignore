@@ -1,4 +1,5 @@
 bin/
+plane
 *.exe
 *.exe~
 *.dll
@@ -9,3 +10,4 @@ bin/
 vendor/
 .idea/
 .vscode/
+.worktrees/
