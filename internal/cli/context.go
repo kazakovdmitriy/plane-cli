@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"github.com/makeplane/plane-cli/internal/config"
-	"github.com/makeplane/plane-cli/internal/output"
+	"github.com/kazakovdmitriy/plane-cli/internal/config"
+	"github.com/kazakovdmitriy/plane-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 

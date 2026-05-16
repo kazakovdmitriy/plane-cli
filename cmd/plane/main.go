@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/makeplane/plane-cli/internal/cli"
+	"github.com/kazakovdmitriy/plane-cli/internal/cli"
 )
 
 func main() {
