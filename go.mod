@@ -1,4 +1,4 @@
-module github.com/makeplane/plane-cli
+module github.com/kazakovdmitriy/plane-cli
 
 go 1.23
 
